@@ -98,3 +98,45 @@ def test_fresh_streamlit_messages(monkeypatch, tmp_path, model_available):
         assert Path.cwd() == ROOT
     finally:
         st.cache_resource.clear()
+
+
+def test_public_streamlit_secrets_disable_private_history(monkeypatch, tmp_path):
+    monkeypatch.delenv('UTAS_DEPLOYMENT_MODE', raising=False)
+    history = tmp_path / 'chat_history.db'
+    monkeypatch.setattr(chat_history, 'DEFAULT_DB_PATH', history)
+    monkeypatch.setattr(planner_module.OllamaReasoningPlanner, 'is_available', lambda self: False)
+    monkeypatch.setattr(OllamaAnswerProvider, 'generate', lambda self, prompt: json.dumps({
+        'answer': '', 'insufficient_evidence': True,
+    }))
+
+    def forbidden_history(*args, **kwargs):
+        pytest.fail('Public mode accessed local SQLite history')
+
+    for name in ('list_conversations', 'create_conversation', 'add_message', 'get_conversation'):
+        monkeypatch.setattr(chat_history, name, forbidden_history)
+    calls = []
+    original = service_module.QuestionAnswerService.answer_with_evidence
+
+    def capture(self, question):
+        assert self.processed_dir == ROOT / 'deployment_data'
+        result = original(self, question)
+        calls.append(result)
+        return result
+
+    monkeypatch.setattr(service_module.QuestionAnswerService, 'answer_with_evidence', capture)
+    st.cache_resource.clear()
+    try:
+        app = AppTest.from_file(str(ROOT / 'app.py'), default_timeout=120)
+        app.secrets['UTAS_DEPLOYMENT_MODE'] = 'public'
+        app.run()
+        assert not app.exception
+        for question in ('What type of applicant is Applicant B?',
+                         'Using my private applicant profile, summarise my background and main research interests.',
+                         'What English score do I need for a PhD?'):
+            app.button(key='new_chat').click().run()
+            app.chat_input[0].set_value(question).run()
+            assert not app.exception
+        assert [result.response.insufficient_evidence for result in calls] == [True, True, False]
+        assert not history.exists()
+    finally:
+        st.cache_resource.clear()

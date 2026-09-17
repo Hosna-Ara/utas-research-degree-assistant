@@ -2,12 +2,12 @@
 
 import logging
 from html import escape
-import os
 from pathlib import Path
 
 import streamlit as st
 
 from utas_research_assistant.service import create_service
+from utas_research_assistant.deployment import deployment_mode
 from utas_research_assistant.chat_history import (
     DEFAULT_DB_PATH, add_message, create_conversation, get_conversation,
     list_conversations,
@@ -44,7 +44,7 @@ def _queue_chat_input() -> None:
 
 def _history_enabled() -> bool:
     """Public deployment uses ephemeral session state, never local personal DB."""
-    return os.environ.get("UTAS_DEPLOYMENT_MODE", "local").casefold() != "public"
+    return deployment_mode() != "public"
 
 
 def _load_session_conversation(conversation_id: int) -> None:

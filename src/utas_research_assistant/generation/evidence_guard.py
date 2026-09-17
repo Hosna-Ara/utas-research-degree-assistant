@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import re
 
+from utas_research_assistant.retrieval.local_documents import has_local_document_reference
+
 
 @dataclass(frozen=True)
 class EvidenceGap:
@@ -67,7 +69,7 @@ def assess_evidence_capability(question: str, evidence: dict,
     ))
     has_local_evidence = any(row.get("item_type") == "local_document"
                              for row in evidence.get("ranked_retrieval_evidence", []) or [])
-    if local_request and not has_local_evidence:
+    if (local_request or has_local_document_reference(question)) and not has_local_evidence:
         return EvidenceGap(
             "local_document_unavailable",
             "The active knowledge base does not contain the requested private or local document information.",

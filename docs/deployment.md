@@ -1,28 +1,42 @@
-# Deployment data architecture
+# Single-repository deployment
 
-The public application repository contains code and tests. Runtime data for a
-public deployment is built separately with `scripts/build_deployment_bundle.py`
-from the public UTAS project, general-document, supervisor, and graph artifacts.
-The resulting bundle is intended for a separate private data repository; this
-project does not create or upload that repository.
+Deploy `Hosna-Ara/utas-research-degree-assistant` with `app.py` as the entry point.
+The code and reviewed public UTAS runtime bundle are in this one repository.
+Set only this application setting in Streamlit Community Cloud secrets:
 
-Set `UTAS_DEPLOYMENT_MODE=public`, `UTAS_DATA_REPO`, `UTAS_DATA_REF`, and
-`UTAS_DATA_TOKEN` through deployment secrets. The token is used only for a
-read-only GitHub API archive request. `UTAS_DATA_DIR` may point directly to a
-validated bundle for local deployment simulation. Data is resolved once when
-the cached service starts, rather than per question.
-
-Local development keeps the existing full mode: local `data/processed` data is
-used first and may include private assignment documents. Personal SQLite chat
-history is local-only. Public mode never loads `local_chunks.json`, private
-assignment documents, or Hosna's local chat-history database.
-
-Build a bundle locally with:
-
-```bash
-python scripts/build_deployment_bundle.py
+```toml
+UTAS_DEPLOYMENT_MODE = "public"
 ```
 
-Review the manifest and privacy checks before placing the resulting
-`dist/utas-public-runtime-data/` directory in a separate private runtime-data
-repository. Never commit private local documents, local indexes, or secrets.
+Public mode always uses `deployment_data/` and validates it with
+`public_only=True`. It requires a public-only deployment manifest and rejects
+local document artifacts, unexpected files, and symlinks. There is no private
+runtime-data repository, GitHub token, or remote bundle download. Legacy
+`UTAS_DATA_*` settings are unused and can be removed. Public chat history stays
+in session state; it does not read or write the local SQLite database.
+
+Local mode is the default (or set `UTAS_DEPLOYMENT_MODE=local`). It uses
+`data/processed/`, including optional private/local documents, and permits local
+SQLite chat history. Explicit data-directory arguments remain available for local
+tools and tests. They cannot override the public runtime directory.
+
+## Updating the runtime bundle
+
+Build public-only assets with `python scripts/build_deployment_bundle.py`.
+Review `dist/utas-public-runtime-data/` and its manifest, then copy only these
+reviewed files into `deployment_data/`:
+
+- `deployment_manifest.json`
+- `general_chunks.json`
+- `graph_manifest.json`
+- `project_documents.json`
+- `semantic_embeddings.npy`
+- `semantic_index.json`
+- `semantic_passages.json`
+- `supervisor_documents.json`
+- `utas_research_graph.ttl`
+
+Never copy the full local processed directory or its semantic index. Keep private
+assignment documents, their derivatives and evaluations, SQLite history, actual
+secrets, and `dist/` excluded from Git. Run the full tests and inspect staged files
+before committing an updated public bundle.

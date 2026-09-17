@@ -38,3 +38,14 @@ __pycache__/
 # Private local-document evaluation
 data/evaluation/local_document_questions.json
 data/evaluation/*local_document*
+
+# Private artifacts are excluded regardless of their location.
+local_documents.json
+local_chunks.json
+*local*manifest*.json
+*private*manifest*.json
+chat_history.db*
+data/evaluation/*private*
+
+# Reviewed public-only runtime assets live in the code repository.
+!deployment_data/

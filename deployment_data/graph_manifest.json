@@ -1,0 +1,16 @@
+{
+  "total_triples": 7453,
+  "number_of_projects": 219,
+  "number_of_supervisors": 174,
+  "number_of_research_categories": 25,
+  "number_of_degree_types": 2,
+  "number_of_student_types": 2,
+  "number_of_locations": 4,
+  "number_of_funding_status_nodes": 2,
+  "number_of_application_status_nodes": 2,
+  "number_of_research_fields": 438,
+  "number_of_schools": 22,
+  "source_file": "data/processed/project_documents.json",
+  "supervisor_source_file": "data/processed/supervisor_profiles.json",
+  "built_at": "2026-09-17T07:24:33.751046+00:00"
+}

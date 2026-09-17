@@ -1,0 +1,53 @@
+{
+  "bundle_version": "20260917",
+  "created_at": "2026-09-17T11:53:10.705154+00:00",
+  "source_scope": "public_utas_only",
+  "private_local_documents_included": false,
+  "files": [
+    {
+      "name": "general_chunks.json",
+      "bytes": 173040,
+      "sha256": "e132e80575d3656c1ff9deb18b64367ca8103a9f6cf7832f9fe7a79e820d26b0"
+    },
+    {
+      "name": "graph_manifest.json",
+      "bytes": 543,
+      "sha256": "ee5fc1a4b616b0485bee0e8577aec3403316a988149855c02b8a7f97e791a3a8"
+    },
+    {
+      "name": "project_documents.json",
+      "bytes": 360472,
+      "sha256": "89c9a9c3f71e5401624a00e14c3be4dc52d119b741caa5dbd6474716cc0d4103"
+    },
+    {
+      "name": "semantic_embeddings.npy",
+      "bytes": 1597568,
+      "sha256": "81d3dd75debcd8e0bfd16259dfc23b00f2816069b24c00af899ec86e11db6727"
+    },
+    {
+      "name": "semantic_index.json",
+      "bytes": 6499694,
+      "sha256": "6d94dedc1b8f06b2989c6998fe2820e23ed4caf8ef7d0a1e0b4f484d5a7ca85c"
+    },
+    {
+      "name": "semantic_passages.json",
+      "bytes": 364448,
+      "sha256": "182bef7c5e43c4ba9b13c1cb80531b98e945e31f1e2180615c9971c9ea199b60"
+    },
+    {
+      "name": "supervisor_documents.json",
+      "bytes": 562149,
+      "sha256": "4f928ae4d184c2bb8ce6978ebe152d875eba1d704c54ddfc745aab017a5656e8"
+    },
+    {
+      "name": "utas_research_graph.ttl",
+      "bytes": 964712,
+      "sha256": "b9b9cf030f60cde4d540ae055b3cf8be13a743f780b0b28af00e64fc4ff33a16"
+    }
+  ],
+  "projects": 219,
+  "supervisors": 174,
+  "resolved_supervisor_profiles": 0,
+  "general_chunks": 55,
+  "semantic_vectors": 1040
+}
