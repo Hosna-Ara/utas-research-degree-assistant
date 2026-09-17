@@ -1,0 +1,36 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.env
+data/raw/
+data/raw/private/
+data/processed/
+data/processed/local_documents.json
+data/processed/local_chunks.json
+data/processed/semantic_embeddings.npy
+data/processed/semantic_index.json
+data/private/
+data/local/chat_history.db
+data/local/*.db
+data/local/*.sqlite
+data/local/*.sqlite3
+data/evaluation/local_document_questions.json
+scripts/evaluate_local_documents.py
+models/
+*.log
+
+.DS_Store
+**/.DS_Store
+
+# Python/cache files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Private local-document evaluation
+data/evaluation/local_document_questions.json
+data/evaluation/*local_document*

@@ -1,0 +1,32 @@
+[
+  {
+    "limitation_id": "F1",
+    "question": "What are the complete project-specific eligibility and selection criteria for project 12259?",
+    "expected_system_behaviour": "State that only summary listing information is available locally and do not invent detailed eligibility or selection criteria.",
+    "failure_stage": "acquisition",
+    "why_it_failed": "The local dataset contains the project listing summary but not its individual detail page.",
+    "additional_data_or_component": "A manually saved and reviewed local snapshot of the official project detail page, including eligibility and selection criteria.",
+    "manual_answer": "TO BE VERIFIED MANUALLY",
+    "manual_source": "TO BE VERIFIED MANUALLY"
+  },
+  {
+    "limitation_id": "F2",
+    "question": "What are the recent publications and research impact of the supervisor of project 12259?",
+    "expected_system_behaviour": "State that supervisor profile and publication information is not available locally; do not infer impact from project metadata.",
+    "failure_stage": "acquisition",
+    "why_it_failed": "Supervisor researcher profiles and publication records are not included in the current knowledge base.",
+    "additional_data_or_component": "Manually saved official UTAS researcher profile and verified publication/impact records, with source dates.",
+    "manual_answer": "TO BE VERIFIED MANUALLY",
+    "manual_source": "TO BE VERIFIED MANUALLY"
+  },
+  {
+    "limitation_id": "F3",
+    "question": "What projects were added to the UTAS website today?",
+    "expected_system_behaviour": "Explain that the local dated snapshot cannot establish what changed on the live UTAS website today.",
+    "failure_stage": "acquisition",
+    "why_it_failed": "The system uses manually saved snapshot data and has no live/current change feed.",
+    "additional_data_or_component": "A permitted, reliable, dated source of UTAS project-list changes; until then, a manually saved current snapshot and its date.",
+    "manual_answer": "TO BE VERIFIED MANUALLY",
+    "manual_source": "TO BE VERIFIED MANUALLY"
+  }
+]

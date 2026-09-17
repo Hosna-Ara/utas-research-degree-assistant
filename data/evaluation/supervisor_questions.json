@@ -1,0 +1,15 @@
+[
+  {"question_id":"S1","query_type":"supervisor_profile","question":"Tell me about Soonja Yeom.","expected_method":["retrieval","graph"],"expected_supervisor":"Soonja Yeom"},
+  {"question_id":"S2","query_type":"supervisor_profile","question":"What are Soonja Yeom's research interests?","expected_method":["retrieval","graph"],"expected_supervisor":"Soonja Yeom"},
+  {"question_id":"S3","query_type":"supervisor_projects","question":"Which projects are supervised by Soonja Yeom?","expected_method":["graph"],"expected_graph_operation":"projects_by_supervisor","expected_project_ids":["12103","12201"]},
+  {"question_id":"S4","query_type":"project_supervisor","question":"Who supervises project 12103?","expected_method":["graph"],"expected_graph_operation":"project_by_id","expected_supervisor":"Doctor Soonja Yeom"},
+  {"question_id":"S5","query_type":"supervisor_profile","question":"What is the research background of the supervisor of project 12103?","expected_method":["graph"],"expected_graph_operation":"project_by_id","expected_supervisor":"Doctor Soonja Yeom"},
+  {"question_id":"S6","query_type":"supervisor_research_field","question":"Which ICT supervisors work in AI?","expected_method":["graph"],"expected_graph_operation":"supervisors_by_research_field"},
+  {"question_id":"S7","query_type":"supervisor_aggregation","question":"Which supervisors have more than one advertised project?","expected_method":["graph"],"expected_graph_operation":"supervisors_with_multiple_projects","expected_count":38},
+  {"question_id":"S8","query_type":"supervisor_school","question":"Which school is Quan Bai affiliated with?","expected_method":["graph"],"expected_graph_operation":"supervisor_school","expected_school":"School of Information and Communication Technology"},
+  {"question_id":"S9","query_type":"hybrid_supervisor_project","question":"Find ICT projects supervised by researchers working in AI.","expected_method":["hybrid_graph"],"expected_graph_operation":"projects_by_supervisor_research_field"},
+  {"question_id":"S10","query_type":"supervisor_metadata","question":"Which supervisors have ORCID profiles?","expected_method":["graph","retrieval"]},
+  {"question_id":"S11","query_type":"unsupported_supervisor_fact","question":"What are Soonja Yeom's latest publications?","expected_insufficient_evidence":true},
+  {"question_id":"S12","query_type":"unsupported_supervisor_fact","question":"What is Quan Bai's h-index?","expected_insufficient_evidence":true},
+  {"question_id":"S13","query_type":"unsupported_supervisor_fact","question":"What is Wenli Yang's Google Scholar citation count?","expected_insufficient_evidence":true}
+]
