@@ -60,6 +60,19 @@ def assess_evidence_capability(question: str, evidence: dict,
     matching = [row for row in projects if project_id is None or str(row.get("project_id")) == project_id]
     source_url = next((row.get("source_url") for row in matching if row.get("source_url")), None)
 
+    local_request = bool(re.search(
+        r"\b(?:private|local|uploaded|user[- ]authored|assignment|persona|decision\s+journal)\b"
+        r"|\bcandidate\b.{0,40}\b(?:rejected|declined)\b",
+        text,
+    ))
+    has_local_evidence = any(row.get("item_type") == "local_document"
+                             for row in evidence.get("ranked_retrieval_evidence", []) or [])
+    if local_request and not has_local_evidence:
+        return EvidenceGap(
+            "local_document_unavailable",
+            "The active knowledge base does not contain the requested private or local document information.",
+        )
+
     detailed_criteria = bool(re.search(
         r"\b(eligib(?:ility|le)|selection\s+criteria|selection\s+process|"
         r"detailed\s+(?:project\s+)?(?:application\s+)?requirements?|"

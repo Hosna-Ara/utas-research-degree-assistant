@@ -8,6 +8,7 @@ from rdflib import Graph
 
 from utas_research_assistant.generation.answer_generator import AnswerGenerator
 from utas_research_assistant.generation.models import AnswerResponse
+from utas_research_assistant.deployment import resolve_runtime_data
 from utas_research_assistant.query.planner import ReasoningPlanner
 from utas_research_assistant.query.reasoning_router import ReasoningRouter
 from utas_research_assistant.retrieval.corpus import load_corpus
@@ -29,7 +30,9 @@ class AnswerResult:
 
 
 class QuestionAnswerService:
-    def __init__(self, router: ReasoningRouter, answer_generator: AnswerGenerator):
+    def __init__(self, router: ReasoningRouter, answer_generator: AnswerGenerator,
+                 processed_dir: Path | None = None):
+        self.processed_dir = processed_dir.resolve() if processed_dir is not None else None
         self.router = router
         self.answer_generator = answer_generator
 
@@ -45,13 +48,14 @@ class QuestionAnswerService:
         return self.answer_with_evidence(question).response
 
 
-def create_service(processed_dir: Path = DEFAULT_PROCESSED_DIR) -> QuestionAnswerService:
+def create_service(processed_dir: Path | None = None) -> QuestionAnswerService:
     """Load immutable local assets once and compose the already-tested pipeline."""
+    processed_dir = resolve_runtime_data(processed_dir)
     corpus = load_corpus(processed_dir)
     graph = Graph().parse(processed_dir / "utas_research_graph.ttl", format="turtle")
     semantic = SemanticRetriever(corpus, processed_dir)
     router = ReasoningRouter(ReasoningPlanner(), HybridRetriever(corpus, None, semantic), graph)
-    return QuestionAnswerService(router, AnswerGenerator())
+    return QuestionAnswerService(router, AnswerGenerator(), processed_dir)
 
 
 @lru_cache(maxsize=1)

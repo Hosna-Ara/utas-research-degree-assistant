@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from utas_research_assistant.retrieval.bm25 import BM25Retriever
 from utas_research_assistant.retrieval.corpus import Corpus
 from utas_research_assistant.retrieval.filters import filter_projects
+from utas_research_assistant.retrieval.local_documents import resolve_local_document
 from utas_research_assistant.retrieval.project_documents import ProjectDocument
 from utas_research_assistant.retrieval.semantic import SemanticRetriever
 
@@ -68,6 +69,11 @@ class HybridRetriever:
         if top_k <= 0:
             return []
         candidates = self.candidate_indices(scope, filters, candidate_project_ids)
+        target = resolve_local_document(query, (self.corpus.items[i] for i in candidates))
+        if target is not None:
+            candidates = [i for i in candidates
+                          if self.corpus.items[i].item_type == "local_document"
+                          and self.corpus.items[i].metadata.get("document_id") == target]
         if not candidates:
             return []
         selected = [self.corpus.items[i] for i in candidates]

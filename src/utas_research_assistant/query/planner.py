@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from utas_research_assistant.config import OLLAMA_HOST, OLLAMA_MODEL, OLLAMA_TIMEOUT_SECONDS
 from utas_research_assistant.retrieval.filters import canonical
+from utas_research_assistant.retrieval.local_documents import has_local_document_reference
 from utas_research_assistant.query.models import ReasoningPlan, RetrievalPlan
 
 SYSTEM_PROMPT = """You plan retrieval for an unofficial UTAS research-degree assistant.
@@ -189,6 +190,7 @@ def fallback_plan(question: str) -> RetrievalPlan:
         question, re.I,
     ))
     local_signal = bool(re.search(r"\b(?:my\s+(?:uploaded|local|private)|local\s+(?:notes?|documents?|files?|preference|rubric|framework|readiness|decision\s+journal)|private\s+(?:notes?|documents?|files?|profile|preference|funding|applicant)|uploaded\s+(?:notes?|documents?|files?)|user[- ]authored|applicant\s+b|persona\s+constraints|decision\s+journal|knowledge\s+base)\b", question, re.I))
+    local_signal = local_signal or has_local_document_reference(question)
     scope = "all" if (project_signal and general_signal) or local_signal else "projects" if project_signal else "general"
     query = _clean_search_query(question, spans) or question.strip()
     if values.get("project_id") and not re.search(r"\b(projects?|supervis(?:e|es|or))\b", question, re.I):
@@ -427,9 +429,9 @@ def fallback_reasoning_plan(question: str) -> ReasoningPlan:
         r"decision\s+journal|persona\s+constraints|user[- ]authored|"
         r"contact(?:ing)?\s+(?:a\s+)?(?:potential\s+)?supervisor|"
         r"publication\s+information.*knowledge\s+base)\b", text, re.I))
-    if local_context:
+    if local_context or has_local_document_reference(question):
         return ReasoningPlan(
-            method="retrieval", scope="all", search_query=base.search_query,
+            method="retrieval", scope="all", search_query=question.strip(),
             intent="local_document_lookup", confidence=max(base.confidence or 0, 0.55),
             planner_method="fallback",
         )
@@ -600,6 +602,13 @@ class ReasoningPlanner:
             if rejected:
                 raise ValueError("LLM planner emitted constraint values not explicit in the question")
             explicit_plan = fallback_reasoning_plan(question)
+            if explicit_plan.intent == "local_document_lookup" and (
+                plan.method != "retrieval" or plan.scope != "all"
+                or plan.search_query != question or plan.project_filters()
+                or plan.graph_operation is not None
+                or plan.intent != explicit_plan.intent
+            ):
+                raise ValueError("LLM plan changed explicit local-document routing or original search query")
             for field, value in explicit_plan.project_filters().items():
                 planned_value = plan.project_filters().get(field)
                 if planned_value is None:
