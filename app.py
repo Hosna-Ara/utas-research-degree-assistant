@@ -2,6 +2,7 @@
 
 import logging
 from html import escape
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -41,7 +42,14 @@ def _queue_chat_input() -> None:
         st.session_state.pending_question = question
 
 
+def _history_enabled() -> bool:
+    """Public deployment uses ephemeral session state, never local personal DB."""
+    return os.environ.get("UTAS_DEPLOYMENT_MODE", "local").casefold() != "public"
+
+
 def _load_session_conversation(conversation_id: int) -> None:
+    if not _history_enabled():
+        return
     record = get_conversation(conversation_id, DEFAULT_DB_PATH)
     if record is None:
         st.session_state.conversation_id = None
@@ -71,7 +79,7 @@ def _render_sidebar() -> None:
             _new_chat()
             st.rerun()
         st.markdown('<div class="nav-section">Recent chats</div>', unsafe_allow_html=True)
-        conversations = list_conversations(DEFAULT_DB_PATH)
+        conversations = list_conversations(DEFAULT_DB_PATH) if _history_enabled() else []
         if conversations:
             for conversation in conversations[:8]:
                 selected = conversation["id"] == st.session_state.get("conversation_id")
@@ -117,10 +125,11 @@ def _friendly_error(exc: Exception) -> str:
 
 
 def _process_question(question: str) -> None:
-    if not st.session_state.get("conversation_id"):
+    if _history_enabled() and not st.session_state.get("conversation_id"):
         conversation = create_conversation(first_question=question, path=DEFAULT_DB_PATH)
         st.session_state.conversation_id = int(conversation["id"])
-    add_message(st.session_state.conversation_id, "user", question, path=DEFAULT_DB_PATH)
+    if _history_enabled():
+        add_message(st.session_state.conversation_id, "user", question, path=DEFAULT_DB_PATH)
     st.session_state.messages.append({"role": "user", "content": question})
     try:
         # Use Streamlit's role defaults. Passing decorative strings here makes
@@ -136,10 +145,11 @@ def _process_question(question: str) -> None:
             payload = {"response": result.response.model_dump(mode="json"), "evidence": result.evidence, "generation_notice": result.generation_notice}
             render_assistant_result(payload)
             st.session_state.messages.append({"role": "assistant", **payload})
-            add_message(st.session_state.conversation_id, "assistant", result.response.answer,
-                        {"payload": payload, "citation_ids": result.response.citations,
-                         "project_ids": result.response.project_ids,
-                         "reasoning_method": result.response.reasoning_method}, path=DEFAULT_DB_PATH)
+            if _history_enabled():
+                add_message(st.session_state.conversation_id, "assistant", result.response.answer,
+                            {"payload": payload, "citation_ids": result.response.citations,
+                             "project_ids": result.response.project_ids,
+                             "reasoning_method": result.response.reasoning_method}, path=DEFAULT_DB_PATH)
     except Exception as exc:
         message = _friendly_error(exc)
         # Keep the user-facing error small while retaining the traceback in the
@@ -147,8 +157,9 @@ def _process_question(question: str) -> None:
         with st.chat_message("assistant"):
             st.info(message)
         st.session_state.messages.append({"role": "assistant", "error": message})
-        add_message(st.session_state.conversation_id, "assistant", message,
-                    {"payload": {"error": message}}, path=DEFAULT_DB_PATH)
+        if _history_enabled() and st.session_state.get("conversation_id"):
+            add_message(st.session_state.conversation_id, "assistant", message,
+                        {"payload": {"error": message}}, path=DEFAULT_DB_PATH)
     # Re-render the complete thread so the composer remains below the newest
     # answer instead of leaving the just-created answer under the form.
     st.rerun()

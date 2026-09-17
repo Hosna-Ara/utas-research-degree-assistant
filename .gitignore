@@ -6,6 +6,9 @@ __pycache__/
 build/
 dist/
 .env
+.env.*
+!.env.example
+.streamlit/secrets.toml
 data/raw/
 data/raw/private/
 data/processed/
@@ -20,6 +23,7 @@ data/local/*.sqlite
 data/local/*.sqlite3
 data/evaluation/local_document_questions.json
 scripts/evaluate_local_documents.py
+dist/
 models/
 *.log
 
