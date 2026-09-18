@@ -4,28 +4,37 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 from time import perf_counter
 
 import numpy as np
 
+from utas_research_assistant.deployment import deployment_mode
 from utas_research_assistant.retrieval.corpus import Corpus, tokenize
 from utas_research_assistant.retrieval.semantic_passages import embedding_items
 
 DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+LOGGER = logging.getLogger(__name__)
 
 
 def configured_model() -> str:
     return os.environ.get("UTAS_EMBEDDING_MODEL", DEFAULT_MODEL)
 
 
-def load_model(name: str, *, allow_download: bool = False):
+def model_download_allowed() -> bool:
+    return deployment_mode() == "public"
+
+
+def load_model(name: str, *, allow_download: bool | None = None):
     # Lazy import keeps mocked tests independent of torch and model downloads.
     from sentence_transformers import SentenceTransformer
+    if allow_download is None:
+        allow_download = model_download_allowed()
     try:
         return SentenceTransformer(name, device="cpu", local_files_only=True)
-    except OSError:
+    except Exception:
         if not allow_download:
             raise
         return SentenceTransformer(name, device="cpu", local_files_only=False)
@@ -127,6 +136,7 @@ class SemanticRetriever:
                 or not np.allclose(np.linalg.norm(self.vectors, axis=1), 1, atol=1e-5)):
             raise ValueError("Embedding/index mismatch or invalid vectors; rebuild the index")
         self.model = model
+        self._model_unavailable = False
 
     def search(self, query: str, top_k: int = 5, *, candidate_indices: set[int] | None = None) -> list[dict]:
         if isinstance(top_k, bool) or not isinstance(top_k, int):
@@ -134,7 +144,17 @@ class SemanticRetriever:
         if top_k <= 0 or not tokenize(query) or not self.corpus.items:
             return []
         if self.model is None:
-            self.model = load_model(self.metadata["model_name"])
+            if self._model_unavailable:
+                return []
+            try:
+                self.model = load_model(self.metadata["model_name"])
+            except Exception:
+                # Third-party model resolution can raise several download,
+                # cache, and network exception types. Keep index validation
+                # outside this boundary and avoid repeated downloads per query.
+                self._model_unavailable = True
+                LOGGER.warning("Semantic model unavailable; using BM25-only retrieval until service restart.")
+                return []
         query_vector = normalize(self.model.encode(
             [query], batch_size=1, normalize_embeddings=True,
             convert_to_numpy=True, show_progress_bar=False,

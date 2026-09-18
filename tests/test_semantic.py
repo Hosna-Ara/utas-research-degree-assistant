@@ -140,3 +140,26 @@ def test_invalid_embeddings_rejected(tmp_path):
         semantic.normalize([[0, 0]])
     with pytest.raises(ValueError, match="finite"):
         semantic.normalize([[np.nan, 1]])
+
+
+def test_hybrid_with_successfully_loaded_model(tmp_path, corpus, monkeypatch):
+    from utas_research_assistant.retrieval.hybrid import HybridRetriever
+
+    encoder = FakeEncoder()
+    semantic.build_embeddings(corpus, tmp_path, model_name='mock', model=encoder)
+    loads = []
+
+    def cached_model(name):
+        loads.append(name)
+        return encoder
+
+    monkeypatch.setattr(semantic, 'load_model', cached_model)
+    retriever = semantic.SemanticRetriever(corpus, tmp_path)
+    hybrid = HybridRetriever(corpus, None, retriever)
+    for _ in range(2):
+        rows = hybrid.search('automobile')
+        assert rows[0]['title'] == 'automobile'
+        assert rows[0]['bm25_rank'] == 1
+        assert rows[0]['semantic_rank'] == 1
+        assert rows[0]['rrf_score'] == pytest.approx(2 / 61)
+    assert loads == ['mock']
