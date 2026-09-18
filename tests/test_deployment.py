@@ -134,3 +134,87 @@ def test_public_utas_retrieval(public_service, question, expected_type):
     assert not result.response.insufficient_evidence
     assert any(row["item_type"] == expected_type
                for row in result.evidence.get("ranked_retrieval_evidence", []))
+
+
+@pytest.mark.parametrize('installed_package', [False, True])
+@pytest.mark.parametrize('working_directory', ['checkout', 'nested', 'unrelated'])
+def test_cloud_checkout_resolution(monkeypatch, tmp_path, installed_package, working_directory):
+    from utas_research_assistant import deployment
+
+    checkout = tmp_path / 'mount/src/utas-research-degree-assistant'
+    bundle = checkout / 'deployment_data'
+    make_bundle(bundle)
+    package_file = (tmp_path / 'venv/lib/python3.12/site-packages/utas_research_assistant/deployment.py'
+                    if installed_package else checkout / 'src/utas_research_assistant/deployment.py')
+    monkeypatch.setattr(deployment, '__file__', str(package_file))
+    cwd = {'checkout': checkout, 'nested': checkout / 'app/work', 'unrelated': tmp_path / 'other'}[working_directory]
+    cwd.mkdir(parents=True, exist_ok=True)
+    monkeypatch.chdir(cwd)
+    monkeypatch.setenv('UTAS_DEPLOYMENT_MODE', 'public')
+    if installed_package and working_directory == 'unrelated':
+        # No checkout anchor is available; fail clearly rather than guess.
+        with pytest.raises(RuntimeError, match='No valid public deployment_data directory found'):
+            resolve_runtime_data()
+    else:
+        assert resolve_runtime_data() == bundle
+
+
+def test_public_resolution_skips_incomplete_package_candidate(monkeypatch, tmp_path):
+    from utas_research_assistant import deployment
+
+    package_root = tmp_path / 'installed'
+    incomplete = package_root / 'deployment_data'
+    incomplete.mkdir(parents=True)
+    (incomplete / 'general_chunks.json').write_text('[]')
+    checkout = tmp_path / 'mount/src/utas-research-degree-assistant'
+    make_bundle(checkout / 'deployment_data')
+    monkeypatch.setattr(deployment, '__file__', str(package_root / 'src/utas_research_assistant/deployment.py'))
+    monkeypatch.chdir(checkout)
+    monkeypatch.setenv('UTAS_DEPLOYMENT_MODE', 'public')
+    assert resolve_runtime_data() == checkout / 'deployment_data'
+
+
+def test_public_resolution_rejects_private_bundle(monkeypatch, tmp_path):
+    from utas_research_assistant import deployment
+
+    checkout = tmp_path / 'mount/src/utas-research-degree-assistant'
+    make_bundle(checkout / 'deployment_data')
+    (checkout / 'deployment_data/local_chunks.json').write_text('[]')
+    monkeypatch.setattr(deployment, '__file__', str(checkout / 'src/utas_research_assistant/deployment.py'))
+    monkeypatch.chdir(checkout)
+    monkeypatch.setenv('UTAS_DEPLOYMENT_MODE', 'public')
+    with pytest.raises(RuntimeError, match='local-document artifacts'):
+        resolve_runtime_data()
+
+
+def test_cloud_public_service_and_safe_diagnostics(monkeypatch, tmp_path, caplog):
+    import logging
+    import shutil
+    from collections import Counter
+    from utas_research_assistant import deployment, service
+    from utas_research_assistant.query.planner import OllamaReasoningPlanner
+
+    checkout = tmp_path / 'mount/src/utas-research-degree-assistant'
+    bundle = checkout / 'deployment_data'
+    shutil.copytree(ROOT / 'deployment_data', bundle)
+    monkeypatch.setattr(deployment, '__file__', str(checkout / 'src/utas_research_assistant/deployment.py'))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('UTAS_DEPLOYMENT_MODE', 'public')
+    monkeypatch.setenv('UTAS_DATA_TOKEN', 'do-not-log-this-secret')
+    monkeypatch.setattr(OllamaReasoningPlanner, 'is_available', lambda self: False)
+    with caplog.at_level(logging.INFO, logger=service.__name__):
+        public = service.create_service()
+    assert public.processed_dir == bundle
+    counts = Counter(item.item_type for item in public.router.retriever.corpus.items)
+    assert counts['general_chunk'] > 0
+    assert counts['research_project'] == 219
+    assert counts['supervisor_profile'] > 0
+    assert counts['local_document'] == 0
+    assert len(public.router.graph) > 0
+    assert public.router.retriever.semantic.vectors.shape[0] == 1040
+    result = public.answer_with_evidence('What English score do I need for a PhD?')
+    assert not result.response.insufficient_evidence
+    messages = [record.getMessage() for record in caplog.records if record.name == service.__name__]
+    assert messages == ['Deployment mode: public', f'Resolved runtime data directory: {bundle}',
+                        *(f'Runtime file {name} exists: True' for name in REQUIRED)]
+    assert 'do-not-log-this-secret' not in caplog.text

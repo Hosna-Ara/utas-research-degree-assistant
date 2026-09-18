@@ -2,13 +2,14 @@
 
 from dataclasses import dataclass
 from functools import lru_cache
+import logging
 from pathlib import Path
 
 from rdflib import Graph
 
 from utas_research_assistant.generation.answer_generator import AnswerGenerator
 from utas_research_assistant.generation.models import AnswerResponse
-from utas_research_assistant.deployment import resolve_runtime_data
+from utas_research_assistant.deployment import REQUIRED_FILES, deployment_mode, resolve_runtime_data
 from utas_research_assistant.query.planner import ReasoningPlanner
 from utas_research_assistant.query.reasoning_router import ReasoningRouter
 from utas_research_assistant.retrieval.corpus import load_corpus
@@ -18,6 +19,7 @@ from utas_research_assistant.retrieval.semantic import SemanticRetriever
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -50,7 +52,11 @@ class QuestionAnswerService:
 
 def create_service(processed_dir: Path | None = None) -> QuestionAnswerService:
     """Load immutable local assets once and compose the already-tested pipeline."""
+    LOGGER.info("Deployment mode: %s", deployment_mode())
     processed_dir = resolve_runtime_data(processed_dir)
+    LOGGER.info("Resolved runtime data directory: %s", processed_dir.resolve())
+    for filename in REQUIRED_FILES:
+        LOGGER.info("Runtime file %s exists: %s", filename, (processed_dir / filename).is_file())
     corpus = load_corpus(processed_dir)
     graph = Graph().parse(processed_dir / "utas_research_graph.ttl", format="turtle")
     semantic = SemanticRetriever(corpus, processed_dir)

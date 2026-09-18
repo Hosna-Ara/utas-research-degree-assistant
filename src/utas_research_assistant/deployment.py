@@ -55,14 +55,45 @@ def validate_runtime_data(directory: Path, *, public_only: bool = False) -> None
             raise RuntimeError("Public runtime bundle contains unexpected artifacts")
 
 
+def _public_runtime_directory() -> Path:
+    """Find a complete public bundle in the source checkout, not site-packages.
+
+    Editable installs normally resolve back to src/. A non-editable install can
+    instead rely on the checkout working directory (or one of its ancestors).
+    Every candidate must pass the same public-only validation before use.
+    """
+    package_file = Path(__file__).resolve()
+    cwd = Path.cwd().resolve()
+    candidates = dict.fromkeys([
+        package_file.parents[2] / "deployment_data",
+        cwd / "deployment_data",
+        *(parent / "deployment_data" for parent in cwd.parents),
+    ])
+    failures = []
+    for candidate in candidates:
+        try:
+            validate_runtime_data(candidate, public_only=True)
+        except (RuntimeError, OSError, ValueError) as error:
+            # Parse/IO exceptions may include file contents; expose only a safe
+            # category, while retaining our own content-free validation errors.
+            reason = str(error) if isinstance(error, RuntimeError) else "unreadable runtime manifest or files"
+            failures.append(f"{candidate}: {reason}")
+        else:
+            return candidate.resolve()
+    raise RuntimeError("No valid public deployment_data directory found. Checked:\n"
+                       + "\n".join(failures))
+
+
 def resolve_runtime_data(local_dir: Path | None = None) -> Path:
     root = Path(__file__).resolve().parents[2]
     mode = deployment_mode()
     if mode not in {"local", "public"}:
         raise RuntimeError("UTAS_DEPLOYMENT_MODE must be local or public")
     # Public mode never honors local paths or legacy remote-data settings.
-    candidate = root / "deployment_data" if mode == "public" else Path(local_dir or root / "data/processed")
-    validate_runtime_data(candidate, public_only=mode == "public")
+    if mode == "public":
+        return _public_runtime_directory()
+    candidate = Path(local_dir or root / "data/processed")
+    validate_runtime_data(candidate)
     return candidate
 
 
