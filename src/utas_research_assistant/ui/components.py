@@ -5,6 +5,7 @@ not perform retrieval, planning, or answer generation.
 """
 
 from html import escape
+import re
 
 import streamlit as st
 
@@ -197,9 +198,48 @@ def render_assistant_result(payload: dict) -> None:
     if operation in LIST_GRAPH_OPERATIONS and isinstance(graph_result, list):
         st.markdown(f"**{len(graph_result)} supervisors found.**")
         render_structured_graph_result(operation, graph_result)
+    elif response.reasoning_method == "profile_matching":
+        render_personalised_cards(response, evidence)
     else:
         st.markdown(response.answer)
-    project_ids |= render_project_cards(response, graph_result)
+    if response.reasoning_method != "profile_matching":
+        project_ids |= render_project_cards(response, graph_result)
     render_sources(response, project_ids)
     render_graph_panel(response, evidence)
     st.markdown(f'<span class="method-badge">{escape(response.reasoning_method.replace("_", " ").title())}</span>', unsafe_allow_html=True)
+
+
+def render_personalised_cards(response: AnswerResponse, evidence: dict) -> None:
+    """Keep each grounded match, score and source together without duplicate cards."""
+    blocks = re.split(r"(?m)(?=^### #)", response.answer)
+    for block in blocks:
+        if not block.strip():
+            continue
+        if not block.startswith("### #"):
+            st.markdown(block)
+            continue
+        score_lines = []
+        body = []
+        for line in block.splitlines():
+            if re.match(r"^- (Research/topic|Skills/methods|Academic/domain|Supervisor fit|Practical fit):", line):
+                score_lines.append(line)
+            else:
+                body.append(line)
+        with st.container(border=True):
+            st.markdown("\n".join(body))
+            if score_lines:
+                with st.expander("Score breakdown & matching evidence"):
+                    st.markdown("\n".join(score_lines))
+                    project = re.search(r"Project (\d+)", block)
+                    row = next((r for r in evidence.get('recommendations', []) if project and r['project_id'] == project[1]), None)
+                    if row:
+                        for label, dimension in row['breakdown'].items():
+                            if dimension['overlaps']:
+                                st.caption(label + ' overlaps: ' + ', '.join(dimension['overlaps']))
+                        if row['breakdown']['Practical fit'].get('supported_weight', 15) < 15:
+                            st.caption('Practical coverage is reduced when requested constraints lack evidence.')
+    if response.sources:
+        with st.expander("Read matching source excerpts"):
+            for source in response.sources:
+                st.markdown(f"**[{source['citation_id']}] {source.get('title', 'Source')}**")
+                st.text(source.get('description') or source.get('text') or 'No text recorded.')

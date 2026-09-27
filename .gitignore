@@ -49,3 +49,7 @@ data/evaluation/*private*
 
 # Reviewed public-only runtime assets live in the code repository.
 !deployment_data/
+
+# Ephemeral local test/browser artifacts (never deployment input).
+pytest-of-*/
+.test-artifacts/

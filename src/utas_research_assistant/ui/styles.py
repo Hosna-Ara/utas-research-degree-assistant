@@ -4,6 +4,7 @@ APP_CSS = """
 <style>
 :root {
   --canvas: #f8f8f9; --surface: #ffffff; --ink: #20232b; --muted: #68717d;
+  --radius: 10px; --shadow: 0 2px 10px rgba(32,35,43,.04);
   --line: #e5e5e7; --indigo: #762333; --indigo-soft: #f7edef;
 }
 html, body, [class*="css"] { font-family: Inter, "Avenir Next", -apple-system, BlinkMacSystemFont, sans-serif; color: var(--ink); }
@@ -13,7 +14,7 @@ html, body, [class*="css"] { font-family: Inter, "Avenir Next", -apple-system, B
 [data-testid="stMarkdownContainer"], [data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li { color: var(--ink); }
 [data-testid="stCaptionContainer"], .stCaption { color: #596780 !important; }
 h1, h2, h3 { color: var(--ink) !important; letter-spacing: -.025em; }
-a { color: #4c45c5 !important; }
+a { color: var(--indigo) !important; }
 .brand { display:flex; align-items:center; gap:.65rem; margin: .1rem .25rem 1.2rem; color:var(--ink); }
 .brand-mark { width:2rem; height:2rem; display:grid; place-items:center; border-radius:10px; background:var(--indigo); color:#fff; font-weight:700; }
 .brand strong { display:block; font-size:.9rem; letter-spacing:-.01em; }
@@ -49,7 +50,7 @@ a { color: #4c45c5 !important; }
 .empty-state .eyebrow { color:var(--indigo); font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
 .empty-state h1 { font-size:clamp(2rem,4vw,3rem); margin:.5rem 0 .55rem; }
 .empty-state p { color:var(--muted); font-size:1rem; margin:0 auto; max-width:560px; line-height:1.6; }
-[data-testid="stForm"] { position:sticky; bottom:.65rem; z-index:10; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:.35rem .5rem; box-shadow:0 10px 28px rgba(32,42,75,.08); margin:.8rem auto 1.2rem; max-width:900px; }
+[data-testid="stForm"] { position:relative; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:.35rem .5rem; box-shadow:0 10px 28px rgba(32,42,75,.08); margin:.8rem auto 1.2rem; max-width:900px; }
 [data-testid="stForm"] [data-testid="stTextInput"] > div { background:#fff; border:1px solid #dfe3eb; border-radius:11px; }
 [data-testid="stForm"] [data-testid="stTextInput"] > div:focus-within { border-color:var(--indigo); box-shadow:0 0 0 2px rgba(118,35,51,.14); }
 [data-testid="stForm"] [data-testid="stTextInput"] input { background:#fff !important; color:#182338 !important; caret-color:var(--indigo); font-size:.98rem; }
@@ -137,5 +138,26 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline:3px solid #
 .no-match { background:#fafbfe; border-color:var(--line); color:#4b5870; }
 .evidence-warning strong, .no-match strong { color:#2b3548; }
 @media (max-width:700px) { .workspace-top { margin-bottom:1.5rem; } .workspace-tagline { margin-left:0; } .assignment-label { display:none; } .empty-state { margin-top:2rem; } .project-details { gap:.55rem; } .project-card-lower { grid-template-columns:1fr; } .supervisor-mini { border-left:0; border-top:1px solid #eee8ea; padding: .7rem 0 0; } .about-grid { grid-template-columns:1fr; } }
+/* Sidebar CV controls, recommendation cards and contextual actions share design tokens. */
+[data-testid="stVerticalBlockBorderWrapper"] > div { border-color:var(--line); border-radius:var(--radius); background:var(--surface); }
+[data-testid="stChatMessage"] [data-testid="stVerticalBlockBorderWrapper"] { box-shadow:var(--shadow); margin:.4rem 0 .9rem; }
+[data-testid="stChatMessage"] h3 { font-size:1.12rem; line-height:1.45; }
+[data-testid="stExpander"] { background:var(--surface); border-radius:var(--radius); }
+[data-testid="stFileUploaderDropzone"] { border:1px dashed var(--line); background:var(--canvas); padding:.8rem; }
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] { padding:.6rem; flex-wrap:wrap; gap:.35rem; }
+[data-testid="stSidebar"] [data-testid="stText"] { font-size:.75rem; overflow-wrap:anywhere; white-space:pre-wrap; }
+[data-testid="stSidebar"] [data-testid="stAlert"] { padding:.5rem .65rem; border-radius:var(--radius); }
+[data-testid="stFileUploaderDropzone"]:focus-within { outline:2px solid var(--indigo); }
+[class*="st-key-next_question_"] button { border-radius:8px; min-height:2.6rem; text-align:left; font-size:.86rem; }
+[class*="st-key-next_question_"] button:hover { border-color:var(--indigo); background:var(--indigo-soft); }
+div.stButton > button:focus-visible { outline:2px solid var(--indigo); outline-offset:3px; }
+div.stButton > button:disabled { opacity:.55; cursor:not-allowed; }
+@media(max-width:640px) {
+  [data-testid="stHorizontalBlock"] { flex-wrap:wrap; }
+  [data-testid="stColumn"] { min-width:100% !important; }
+  [data-testid="stChatMessage"] { padding:.6rem .3rem; }
+  [data-testid="stChatMessage"] h3 { font-size:1rem; }
+  [data-testid="stFileUploaderDropzone"] { flex-wrap:wrap; }
+}
 </style>
 """

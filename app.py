@@ -2,11 +2,12 @@
 
 import logging
 from html import escape
+from dataclasses import asdict
 from pathlib import Path
 
 import streamlit as st
 
-from utas_research_assistant.service import create_service
+from utas_research_assistant.service import create_service, session_answer
 from utas_research_assistant.deployment import deployment_mode
 from utas_research_assistant.chat_history import (
     DEFAULT_DB_PATH, add_message, create_conversation, get_conversation,
@@ -14,6 +15,8 @@ from utas_research_assistant.chat_history import (
 )
 from utas_research_assistant.ui.components import render_assistant_result
 from utas_research_assistant.ui.styles import APP_CSS
+from utas_research_assistant.ui.applicant import render_cv
+from utas_research_assistant.personalisation import Personalisation, ConversationContext, suggestions
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,7 +47,7 @@ def _queue_chat_input() -> None:
 
 def _history_enabled() -> bool:
     """Public deployment uses ephemeral session state, never local personal DB."""
-    return deployment_mode() != "public"
+    return deployment_mode() != "public" and not st.session_state.get("session_private", False) and not st.session_state.get("applicant_profile")
 
 
 def _load_session_conversation(conversation_id: int) -> None:
@@ -61,11 +64,17 @@ def _load_session_conversation(conversation_id: int) -> None:
             messages.append({"role": "assistant", **item["metadata"]["payload"]})
         elif item["role"] == "user":
             messages.append({"role": "user", "content": item["content"]})
+    st.session_state.pop("match_context", None)
     st.session_state.conversation_id = conversation_id
     st.session_state.messages = messages
+    for message in reversed(messages):
+        if message.get("context"):
+            st.session_state.match_context = ConversationContext(**message["context"])
+            break
 
 
 def _new_chat() -> None:
+    st.session_state.pop("match_context", None)
     st.session_state.messages = []
     st.session_state.pending_question = None
     st.session_state.conversation_id = None
@@ -92,9 +101,10 @@ def _render_sidebar() -> None:
                     st.session_state.view = "chat"
                     st.rerun()
         else:
-            st.caption("No saved conversations yet.")
+            st.caption("Session-only chat · CV privacy enabled" if st.session_state.get("session_private") else "No saved conversations yet.")
         st.markdown('<div class="nav-section">Workspace</div>', unsafe_allow_html=True)
         st.markdown('<div class="nav-item nav-item-active"><span>◌</span> Chat</div>', unsafe_allow_html=True)
+        render_cv()
         st.markdown('<div class="nav-item nav-item-muted"><span>⌕</span><span>Explore research <small>Coming soon</small></span></div>', unsafe_allow_html=True)
         if st.button("ⓘ  About this assistant", key="about_nav", use_container_width=True):
             st.session_state.view = "about"
@@ -120,7 +130,7 @@ def _render_empty_state() -> None:
 
 
 def _friendly_error(exc: Exception) -> str:
-    LOGGER.exception("Question processing failed", exc_info=True)
+    LOGGER.warning("Question processing failed (%s)", type(exc).__name__)
     return "Something went wrong while processing your question. Please try again."
 
 
@@ -139,10 +149,33 @@ def _process_question(question: str) -> None:
         with st.chat_message("assistant"):
             progress = st.empty()
             progress.markdown('<div class="finding-state"><span class="finding-dot"></span>Finding answer<span class="finding-ellipsis">...</span></div>', unsafe_allow_html=True)
-            result = get_service().answer_with_evidence(question)
+            service = get_service()
+            context = st.session_state.setdefault("match_context", ConversationContext())
+            profile = st.session_state.get("applicant_profile")
+            personalisation = Personalisation(service)
+            result = personalisation.answer(question, profile, context)
+            if result is None:
+                # Profile sessions bypass external model/planner calls entirely.
+                if st.session_state.get("session_private"):
+                    result = session_answer(service, question)
+                else:
+                    result = service.answer_with_evidence(question)
+                if result.response.project_ids:
+                    context.project_ids = result.response.project_ids
+                    context.active_project = context.project_ids[0]
+                    context.active_supervisor = personalisation.supervisor_for(context.active_project)
+                    context.stage = "projects"
+                else:
+                    supervisor_ids = [s["supervisor_id"] for s in result.response.sources if s.get("supervisor_id") in personalisation.supervisors]
+                    if supervisor_ids:
+                        context.supervisor_ids = list(dict.fromkeys(supervisor_ids))
+                        context.active_supervisor = supervisor_ids[0]
+                        context.stage = "supervisor"
+                    else:
+                        context.stage = "general"
             progress.empty()
             st.markdown('<div class="message-label assistant-label">Research assistant</div>', unsafe_allow_html=True)
-            payload = {"response": result.response.model_dump(mode="json"), "evidence": result.evidence, "generation_notice": result.generation_notice}
+            payload = {"response": result.response.model_dump(mode="json"), "evidence": result.evidence, "generation_notice": result.generation_notice, "suggestions": suggestions(question, context=context, has_profile=bool(profile)), "context": asdict(context)}
             render_assistant_result(payload)
             st.session_state.messages.append({"role": "assistant", **payload})
             if _history_enabled():
@@ -152,11 +185,10 @@ def _process_question(question: str) -> None:
                              "reasoning_method": result.response.reasoning_method}, path=DEFAULT_DB_PATH)
     except Exception as exc:
         message = _friendly_error(exc)
-        # Keep the user-facing error small while retaining the traceback in the
-        # terminal log for diagnosis.
+        # Log only the exception type; tracebacks may include applicant text.
         with st.chat_message("assistant"):
             st.info(message)
-        st.session_state.messages.append({"role": "assistant", "error": message})
+        st.session_state.messages.append({"role": "assistant", "error": message, "suggestions": suggestions(question, has_profile=bool(st.session_state.get("applicant_profile")))})
         if _history_enabled() and st.session_state.get("conversation_id"):
             add_message(st.session_state.conversation_id, "assistant", message,
                         {"payload": {"error": message}}, path=DEFAULT_DB_PATH)
@@ -201,6 +233,15 @@ def main() -> None:
                 render_assistant_result(message)
     if st.session_state.messages:
         st.markdown('<div id="latest-message" tabindex="-1"></div><div class="latest-hint">Latest answer ↓</div>', unsafe_allow_html=True)
+    if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
+        latest = st.session_state.messages[-1]
+        if not latest.get("suggestions"):
+            latest["suggestions"] = suggestions(context=st.session_state.get("match_context"), has_profile=bool(st.session_state.get("applicant_profile")))
+        st.caption("Suggested next steps")
+        columns = st.columns(2)
+        for index, question in enumerate(latest["suggestions"]):
+            with columns[index % 2]:
+                st.button(question, key=f"next_question_{index}", use_container_width=True, on_click=_queue_question, args=(question,))
     # Process queued suggestion submissions before drawing the composer so the
     # transient user/loading state remains part of the thread above it.
     if st.session_state.pending_question:

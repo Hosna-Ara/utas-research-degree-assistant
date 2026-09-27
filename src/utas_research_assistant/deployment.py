@@ -64,10 +64,15 @@ def _public_runtime_directory() -> Path:
     """
     package_file = Path(__file__).resolve()
     cwd = Path.cwd().resolve()
+    # Nested checkouts must not silently pick an unrelated ancestor's bundle.
+    ancestors = []
+    for parent in (cwd, *cwd.parents):
+        ancestors.append(parent / "deployment_data")
+        if (parent / ".git").exists() or (parent / "pyproject.toml").is_file():
+            break
     candidates = dict.fromkeys([
         package_file.parents[2] / "deployment_data",
-        cwd / "deployment_data",
-        *(parent / "deployment_data" for parent in cwd.parents),
+        *ancestors,
     ])
     failures = []
     for candidate in candidates:
@@ -78,6 +83,10 @@ def _public_runtime_directory() -> Path:
             # category, while retaining our own content-free validation errors.
             reason = str(error) if isinstance(error, RuntimeError) else "unreadable runtime manifest or files"
             failures.append(f"{candidate}: {reason}")
+            if candidate.is_dir() and all((candidate / name).is_file() for name in REQUIRED_FILES):
+                # A complete but rejected bundle is a security/configuration
+                # error, not permission to fall back to another checkout.
+                raise RuntimeError(f"Public runtime bundle rejected: {reason}") from None
         else:
             return candidate.resolve()
     raise RuntimeError("No valid public deployment_data directory found. Checked:\n"

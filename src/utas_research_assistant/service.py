@@ -72,3 +72,27 @@ def _default_service() -> QuestionAnswerService:
 def answer_question(question: str) -> AnswerResponse:
     """Convenience end-to-end API used by non-UI callers."""
     return _default_service().answer_question(question)
+
+
+class _OfflinePlanner:
+    def plan(self, question):
+        from utas_research_assistant.query.planner import fallback_reasoning_plan
+        return fallback_reasoning_plan(question)
+
+
+class _OfflineAnswer:
+    model = 'deterministic'
+
+    def generate(self, prompt):
+        raise ValueError('Session privacy: use grounded deterministic rendering')
+
+
+def session_answer(service: QuestionAnswerService, question: str) -> AnswerResult:
+    """Reuse graph, hybrid search and evidence guards without network model calls.
+
+    Per-call planner/generator prevent personal questions entering shared diagnostics.
+    """
+    router = ReasoningRouter(_OfflinePlanner(), service.router.retriever, service.router.graph)
+    result = QuestionAnswerService(router, AnswerGenerator(_OfflineAnswer())).answer_with_evidence(question)
+    result.generation_notice = "Grounded deterministic answer for this private session."
+    return result

@@ -140,6 +140,8 @@ def test_public_utas_retrieval(public_service, question, expected_type):
 @pytest.mark.parametrize('working_directory', ['checkout', 'nested', 'unrelated'])
 def test_cloud_checkout_resolution(monkeypatch, tmp_path, installed_package, working_directory):
     from utas_research_assistant import deployment
+    # Isolate the simulated checkout even when sandbox temp files live in a repo.
+    (tmp_path / '.git').mkdir()
 
     checkout = tmp_path / 'mount/src/utas-research-degree-assistant'
     bundle = checkout / 'deployment_data'
@@ -176,6 +178,7 @@ def test_public_resolution_skips_incomplete_package_candidate(monkeypatch, tmp_p
 
 def test_public_resolution_rejects_private_bundle(monkeypatch, tmp_path):
     from utas_research_assistant import deployment
+    (tmp_path / '.git').mkdir()
 
     checkout = tmp_path / 'mount/src/utas-research-degree-assistant'
     make_bundle(checkout / 'deployment_data')
