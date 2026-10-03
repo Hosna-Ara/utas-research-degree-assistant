@@ -1,0 +1,16 @@
+[
+  {
+    "project_id": "P001",
+    "title": "Human-Centred AI Feedback",
+    "supervisor": "Alice Smith",
+    "research_field": "Artificial Intelligence",
+    "description": "This project investigates how artificial intelligence can provide adaptive feedback to university students."
+  },
+  {
+    "project_id": "P002",
+    "title": "Cybersecurity Threat Detection",
+    "supervisor": "Bob Lee",
+    "research_field": "Cybersecurity",
+    "description": "This project investigates machine learning methods for detecting cybersecurity threats."
+  }
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "supervisor_id": "S001",
+    "name": "Quan Bai",
+    "title": "Doctor",
+    "school": "School of Information and Communication Technology",
+    "research_fields": [
+      "Artificial intelligence",
+      "Autonomous agents and multiagent systems",
+      "Recommender systems",
+      "Data mining and knowledge discovery"
+    ],
+    "source_url": "https://discover.utas.edu.au/api/users/Quan.Bai"
+  },
+  {
+    "supervisor_id": "S002",
+    "name": "Shuxiang Xu",
+    "title": "Doctor",
+    "school": "University of Tasmania",
+    "research_fields": [
+      "Machine learning",
+      "Deep learning",
+      "Neural networks",
+      "Computer vision"
+    ],
+    "source_url": "https://discover.utas.edu.au/api/users/Shuxiang.Xu"
+  },
+  {
+    "supervisor_id": "S003",
+    "name": "Soonja Yeom",
+    "title": "Doctor",
+    "school": "School of Information and Communication Technology",
+    "research_fields": [
+      "Human-centred computing",
+      "Artificial intelligence",
+      "Learning technologies"
+    ],
+    "source_url": "https://discover.utas.edu.au/"
+  }
+]

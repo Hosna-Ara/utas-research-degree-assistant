@@ -220,7 +220,7 @@ def main() -> None:
     if st.session_state.view == "about":
         _render_about()
         return
-    st.markdown('<div class="workspace-top"><div><div class="workspace-title"><span class="workspace-icon">✦</span><span>UTAS Research Degree Assistant</span></div><div class="workspace-tagline">Explore research projects, supervisors, scholarships and HDR information through grounded AI-powered search.</div></div><span class="assignment-label">welcome to KIT848</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="workspace-top"><div><div class="workspace-title"><span class="workspace-icon">✦</span><span>UTAS Research Degree Assistant</span></div><div class="workspace-tagline">Explore research projects, supervisors, scholarships and HDR information through grounded AI-powered search.</div></div><span class="assignment-label">Welcome to KIT719</span></div>', unsafe_allow_html=True)
     if not st.session_state.messages:
         _render_empty_state()
     for message in st.session_state.messages:

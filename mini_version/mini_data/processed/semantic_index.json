@@ -1,0 +1,12 @@
+[
+  {
+    "embedding_index": 0,
+    "chunk_id": "G001",
+    "source": "HDR Entry Requirements"
+  },
+  {
+    "embedding_index": 1,
+    "chunk_id": "G002",
+    "source": "English Language Requirements"
+  }
+]

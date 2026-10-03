@@ -45,7 +45,7 @@ a { color: var(--indigo) !important; }
 .workspace-title { display:flex; align-items:center; gap:.6rem; color:var(--ink); font-size:1rem; font-weight:750; }
 .workspace-tagline { color:var(--muted); font-size:.78rem; margin:.35rem 0 0 2.4rem; }
 .workspace-icon { display:grid; place-items:center; width:1.8rem; height:1.8rem; border-radius:8px; background:var(--indigo-soft); color:var(--indigo); }
-.assignment-label { color:var(--indigo); font-size:.7rem; font-weight:750; letter-spacing:.05em; text-transform:uppercase; }
+.assignment-label { color:var(--indigo); font-size:.7rem; font-weight:750; letter-spacing:.05em; text-transform:none; }
 .empty-state { max-width:760px; margin:3rem auto 1.35rem; text-align:center; }
 .empty-state .eyebrow { color:var(--indigo); font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
 .empty-state h1 { font-size:clamp(2rem,4vw,3rem); margin:.5rem 0 .55rem; }

@@ -1,0 +1,27 @@
+@prefix ns1: <https://example.org/utas-research/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ns1:P001 a ns1:ResearchProject ;
+    ns1:hasResearchField ns1:field_Artificial_Intelligence ;
+    ns1:projectId "P001" ;
+    ns1:supervisedBy ns1:supervisor_Alice_Smith ;
+    ns1:title "Human-Centred AI Feedback" .
+
+ns1:P002 a ns1:ResearchProject ;
+    ns1:hasResearchField ns1:field_Cybersecurity ;
+    ns1:projectId "P002" ;
+    ns1:supervisedBy ns1:supervisor_Bob_Lee ;
+    ns1:title "Cybersecurity Threat Detection" .
+
+ns1:field_Artificial_Intelligence a ns1:ResearchField ;
+    rdfs:label "Artificial Intelligence" .
+
+ns1:field_Cybersecurity a ns1:ResearchField ;
+    rdfs:label "Cybersecurity" .
+
+ns1:supervisor_Alice_Smith a ns1:Supervisor ;
+    rdfs:label "Alice Smith" .
+
+ns1:supervisor_Bob_Lee a ns1:Supervisor ;
+    rdfs:label "Bob Lee" .
+
